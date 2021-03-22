@@ -53,8 +53,6 @@ int main()
         if (SOCKET_ERROR == ret) {
             display_error("recv error: ", WSAGetLastError());
             exit(-1);
-
-
         }
 
         cout << "Server sent:" << r_mess << endl;
@@ -62,29 +60,3 @@ int main()
     closesocket(server);
     WSACleanup();
 }
-
-//
-//int main() {
-//   WSADATA WSAData;
-//   WSAStartup(MAKEWORD(2, 0), &WSAData);
-//   SOCKET serverSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, 0);
-//   SOCKADDR_IN serverAddr;
-//   memset(&serverAddr, 0, sizeof(SOCKADDR_IN));
-//   serverAddr.sin_family = AF_INET;
-//   serverAddr.sin_port = htons(SERVER_PORT);
-//   inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr);
-//   connect(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-//   while (true) {
-//      char messageBuffer[BUF_SIZE + 1];
-//      cout << "Enter Message: ";
-//      cin.getline(messageBuffer, BUF_SIZE);
-//      int bufferLen = static_cast<int>(strlen(messageBuffer));
-//      if (bufferLen == 0) break;
-//      int sendBytes = send(serverSocket, messageBuffer, bufferLen + 1, 0);
-//      cout << "Sent : " << messageBuffer << "(" << sendBytes << " bytes)\n";
-//      int receiveBytes = recv(serverSocket, messageBuffer, BUF_SIZE, 0);
-//      cout << "Received : " << messageBuffer << " (" << receiveBytes << " bytes)\n";
-//   }
-//   closesocket(serverSocket);
-//   WSACleanup();
-//}
