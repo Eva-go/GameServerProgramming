@@ -1,4 +1,0 @@
-﻿  ehco_Client.cpp
-E:\school\4years\게임서버 프로그래밍\ehcoClient\ehcoClient\ehco_Client.cpp(23,19): warning C4838: 'int'에서 'SHORT'(으)로의 변환에는 축소 변환이 필요합니다.
-E:\school\4years\게임서버 프로그래밍\ehcoClient\ehcoClient\ehco_Client.cpp(23,21): warning C4838: 'int'에서 'SHORT'(으)로의 변환에는 축소 변환이 필요합니다.
-  ehcoClient.vcxproj -> E:\school\4years\게임서버 프로그래밍\ehcoClient\Debug\ehcoClient.exe

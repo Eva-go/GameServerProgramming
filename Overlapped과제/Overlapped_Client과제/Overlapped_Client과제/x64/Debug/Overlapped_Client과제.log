@@ -1,4 +1,0 @@
-﻿  Overlapped_Client.cpp
-E:\school\4years\게임서버 프로그래밍\Overlapped과제\Overlapped_Client과제\Overlapped_Client과제\Overlapped_Client.cpp(22,19): warning C4838: 'int'에서 'SHORT'(으)로의 변환에는 축소 변환이 필요합니다.
-E:\school\4years\게임서버 프로그래밍\Overlapped과제\Overlapped_Client과제\Overlapped_Client과제\Overlapped_Client.cpp(22,21): warning C4838: 'int'에서 'SHORT'(으)로의 변환에는 축소 변환이 필요합니다.
-  Overlapped_Client과제.vcxproj -> E:\school\4years\게임서버 프로그래밍\Overlapped과제\Overlapped_Client과제\x64\Debug\Overlapped_Client과제.exe
