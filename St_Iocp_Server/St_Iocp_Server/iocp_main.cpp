@@ -3,12 +3,12 @@
 using namespace std;
 #include <WS2tcpip.h>
 #include <MSWSock.h>
+#include "protocol.h"
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "MSWSock.lib")
 
 
-#define MAX_BUFFER        1024
-#define SERVER_PORT        3500
+
 
 enum OP_TYPE { OP_RECV, OP_SEND, OP_ACCEPT };
 struct EX_OVER
@@ -34,47 +34,40 @@ struct SESSION
 
 
 constexpr int SERVER_ID = 0;
-constexpr int MAX_USER = 10;
+
 unordered_map <int, SESSION> players;
 
 
-void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags)
+void send_packet(int p_id,void *p)
 {
-    SOCKET client_s = reinterpret_cast<int>(overlapped->hEvent);
+    int p_size = reinterpret_cast<unsigned char*>(p)[0];
+    int p_type = reinterpret_cast<unsigned char*>(p)[1];
+    cout << "To client [ "<<p_id<<"] : ";//디버깅용 (나중에 삭제해야함)
+    cout << "Packet p" << p_type << "]\n";
 
-    if (dataBytes == 0)
-    {
-        closesocket(clients[client_s].socket);
-        clients.erase(client_s);
-        return;
-    }  // 클라이언트가 closesocket을 했을 경우
-    cout << "From client : " << clients[client_s].messageBuffer << " (" << dataBytes << ") bytes)\n";
-    clients[client_s].dataBuffer.len = dataBytes;
-    memset(&(clients[client_s].overlapped), 0, sizeof(WSAOVERLAPPED));
-    clients[client_s].overlapped.hEvent = (HANDLE)client_s;
-    WSASend(client_s, &(clients[client_s].dataBuffer), 1, NULL, 0, &(clients[client_s].overlapped), send_callback);
+    EX_OVER *s_over=new EX_OVER; //로컬 변수로 절때 하지말것 send계속 사용할것이니
+    s_over->m_op = OP_SEND;
+    memset(&s_over->m_over, 0, sizeof(s_over->m_over));
+    memcpy(s_over->m_packetbuf, p, p_size);
+    s_over->m_wsabuf[0].buf = reinterpret_cast<CHAR *>(s_over->m_packetbuf);
+    s_over->m_wsabuf[0].len = p_size;
+    WSASend(players[p_id].m_socket, s_over->m_wsabuf, 1, NULL, 0,&s_over->m_over, 0);
 }
 
-void CALLBACK send_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags)
+
+
+void send_login_ok_packet(int p_id)
 {
-    DWORD receiveBytes = 0;
-    DWORD flags = 0;
-
-    SOCKET client_s = reinterpret_cast<int>(overlapped->hEvent);
-
-    if (dataBytes == 0) {
-        closesocket(clients[client_s].socket);
-        clients.erase(client_s);
-        return;
-    }  // 클라이언트가 closesocket을 했을 경우
-
-    // WSASend(응답에 대한)의 콜백일 경우
-    clients[client_s].dataBuffer.len = MAX_BUFFER;
-
-    cout << "TRACE - Send message : " << clients[client_s].messageBuffer << " (" << dataBytes << " bytes)\n";
-    memset(&(clients[client_s].overlapped), 0, sizeof(WSAOVERLAPPED));
-    clients[client_s].overlapped.hEvent = (HANDLE)client_s;
-    WSARecv(client_s, &clients[client_s].dataBuffer, 1, 0, &flags, &(clients[client_s].overlapped), recv_callback);
+    s2c_login_ok p;
+    p.hp = 10;
+    p.id = p_id;
+    p.level = 2;
+    p.race = 1;
+    p.size = sizeof(p);
+    p.type = S2C_LOGIN_OK;
+    p.x = players[p_id].x;
+    p.y = players[p_id].y;
+    send_packet(p_id, &p);
 }
 
 void do_recv(int s_id)
@@ -91,16 +84,54 @@ int get_new_player_id()
 {
     for (int i = SERVER_ID + 1; i < MAX_USER; ++i) {
         if (0 == players.count(i)) return i;
+      
     }
+    return -1;
+}
+
+void send_move_packet(int p_id)
+{
+    s2c_move_player p;
+    p.id = p_id;
+    p.size = sizeof(p);
+    p.type = S2C_MOVE_PLAYER;
+    p.x = players[p_id].x;
+    p.y = players[p_id].y;
+    send_packet(p_id, &p);
+}
+
+void do_move(int p_id, DIRECTION dir) 
+{
+    auto &x = players[p_id].x;
+    auto &y = players[p_id].y;
+    switch (dir)
+    {
+    case D_N: if(y>0)y--; break;
+    case D_S: if (y < (WORLD_Y_SIZE - 1))y++; break;
+    case D_E: if (x > 0)x--; break;
+    case D_W: if (x < (WORLD_X_SIZE - 1))x++; break;
+
+    }
+
+    send_move_packet(p_id);
 }
 
 void proccess_packet(int p_id, unsigned char* p_buf) {
 
     switch (p_buf[1])
     {
-    case C2S_LOGIN:
+    case C2S_LOGIN: {
+        c2s_login* packet = reinterpret_cast<c2s_login*>(p_buf);
+        strcpy_s(players[p_id].m_name, packet->name);
+        send_login_ok_packet(p_id);
+    }
+       
         break;
-    case C2S_MOVE:
+    case C2S_MOVE: {
+        c2s_move* packet = reinterpret_cast<c2s_move*>(p_buf);
+        do_move(p_id, packet->dr);
+    }
+       
         break;
     default:
         cout << "Unknown Packet Type from Client[" << p_id << "] Packet Type [" << p_buf[1] << "]" << endl;
@@ -108,11 +139,29 @@ void proccess_packet(int p_id, unsigned char* p_buf) {
     }
 }
 
+void display_error(const char* msg, int err_no)
+{
+    WCHAR* lpMsgBuf;
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err_no, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
+    cout << msg;
+    wcout << lpMsgBuf << endl;
+    LocalFree(lpMsgBuf);
+}
+
+void disconnect(int p_id)
+{
+    closesocket(players[p_id].m_socket);
+    players.erase(p_id);
+}
+
 int main()
 {
+    
     WSADATA WSAData;
     WSAStartup(MAKEWORD(2, 2), &WSAData);
     HANDLE h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
+
+    wcout.imbue(locale("korean"));
 
     SOCKET listenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
     CreateIoCompletionPort(reinterpret_cast<HANDLE>(listenSocket), h_iocp, SERVER_ID, 0);
@@ -128,15 +177,30 @@ int main()
     accept_over.m_op = OP_ACCEPT;
     memset(&accept_over.m_over, 0, sizeof(accept_over.m_over));
     SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-    AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 16, 16, NULL, &accept_over.m_over);
+    AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
 
 
     while (true) {
         DWORD num_bytes;
-        ULONG_PTR key;
+        ULONG_PTR ikey;
         WSAOVERLAPPED* over;
 
-        BOOL ret = GetQueuedCompletionStatus(h_iocp, &num_bytes, &key, &over, INFINITE);
+        BOOL ret = GetQueuedCompletionStatus(h_iocp, &num_bytes, &ikey, &over, INFINITE);
+
+
+        int key = static_cast<int>(ikey);
+        if (FALSE == ret) {
+            if (SERVER_ID == key) {
+                display_error("GQCS:", WSAGetLastError());
+                exit(-1);
+            }
+            else {
+                display_error("GQCS:", WSAGetLastError());
+                disconnect(key);
+            }
+            
+        }
+
 
         EX_OVER* ex_over = reinterpret_cast<EX_OVER*> (over);
 
@@ -152,6 +216,7 @@ int main()
                 proccess_packet(key, packet_ptr);
                 num_data -= packet_size;
                 packet_ptr += packet_size;
+                if (0 >= num_data) break;
                 packet_size = packet_ptr[0];
             }
             players[key].m_prev_size = num_data;
@@ -164,25 +229,29 @@ int main()
         case OP_SEND:
             delete ex_over;
             break;
-        case OP_ACCEPT:
+        case OP_ACCEPT: {
             int c_id = get_new_player_id();
-            players[c_id] = SESSION{};
-            players[c_id].id = c_id;
-            players[c_id].m_name[0] = 0;
-            players[c_id].m_recv_over.m_op = OP_RECV;
-
-            players[c_id].m_socket = c_socket;
-            players[c_id].m_prev_size = 0;
-            do_recv(c_id);
+            if (-1 != c_id) {
+                players[c_id] = SESSION{};
+                players[c_id].id = c_id;
+                players[c_id].m_name[0] = 0;
+                players[c_id].m_recv_over.m_op = OP_RECV;
+                players[c_id].m_socket = c_socket;
+                players[c_id].m_prev_size = 0;
+                CreateIoCompletionPort(reinterpret_cast<HANDLE>(c_socket), h_iocp, c_id, 0);
+                do_recv(c_id);
+            }
+            else {
+                closesocket(c_socket);
+            }
 
             //나중에 하나로 함수만드셈 2번쓰니까 뭘봐 
             memset(&accept_over.m_over, 0, sizeof(accept_over.m_over));
             c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-            AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 16, 16, NULL, &accept_over.m_over);
+            AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
+        }
             break;
         }
-
-
     }
     closesocket(listenSocket);
     WSACleanup();

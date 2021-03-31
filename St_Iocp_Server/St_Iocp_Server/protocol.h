@@ -1,6 +1,12 @@
 #pragma once
 
 constexpr int MAX_NAME = 100;
+constexpr int MAX_BUFFER = 1024;
+constexpr short SERVER_PORT = 3500;
+constexpr int WORLD_X_SIZE = 8;
+constexpr int WORLD_Y_SIZE = 8;
+constexpr int MAX_USER = 10;
+
 
 constexpr unsigned char C2S_LOGIN = 1;
 constexpr unsigned char C2S_MOVE = 2;
@@ -19,12 +25,43 @@ struct c2s_login
 };
 
 
-enum DIRECTION { D_N,D_S,D_W,D_E };
+enum DIRECTION { D_N,D_S,D_W,D_E ,D_NO};
 struct c2s_move
 {
 	unsigned char size;
 	unsigned char type;
 	DIRECTION dr;
 };
+
+struct s2c_login_ok {
+	unsigned char size;
+	unsigned char type;
+	int id;
+	short x, y;
+	int hp, level;
+	int race;
+};
+
+struct s2c_add_player { //상대방에게 보여줄것
+	unsigned char size;
+	unsigned char type;
+	int id;
+	short x, y;
+	int race;
+};
+
+struct s2c_move_player {
+	unsigned char size;
+	unsigned char type;
+	int id;
+	short x, y;
+};
+
+struct s2c_remove_player {
+	unsigned char size;
+	unsigned char type;
+	int id;
+};
+
 
 #pragma pack(pop)
