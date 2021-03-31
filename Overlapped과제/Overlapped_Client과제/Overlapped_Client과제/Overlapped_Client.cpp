@@ -8,13 +8,14 @@ using namespace std;
 #define MAX_BUFFER        1024
 #define SERVER_IP        "127.0.0.1"
 #define SERVER_PORT        3500
-#define MAX_CLIENT_COUNT 10
+#define MAX_CLIENT_COUNT 11
+
 struct Player {
 	int x = 0;
 	int y = 0;
 	char key = 0;
 	int id = 0;
-    char playerGUI;
+    int move=0;
 };
 
 void setCursorPos(int x, int y)
@@ -39,8 +40,11 @@ int currentPosY = 0;
 
 int main()
 {
-    int c_id;
+    int c_id=1;
+
 	WSADATA WSAData;
+    u_long blockingMode = 0;
+    u_long nonBlockingMode = 1;
 	WSAStartup(MAKEWORD(2, 0), &WSAData);
 	SOCKET serverSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, 0);
 	SOCKADDR_IN serverAddr;
@@ -49,64 +53,87 @@ int main()
 	serverAddr.sin_port = htons(SERVER_PORT);
 	inet_pton(AF_INET, SERVER_IP, &serverAddr.sin_addr);
 	connect(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr));
-    Player player;
+    Player player[MAX_CLIENT_COUNT];
     chessBoard(8, 8);
-   
+    
     int sendBytes;
     int bufferLen = static_cast<int>(sizeof(player));
-    int receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
-    c_id = player.id;
-    setCursorPos(player.x, player.y);
+    int receiveBytes;
+    
+
+    
+    setCursorPos(player[c_id].x, player[c_id].y);
     cout << "■";
-    if (player.id != c_id)
-    {
-        setCursorPos(player.x, player.y);
-        cout << "★";
-    }
+    
     while (true) {
+        
+        for (int i = 0; i < MAX_CLIENT_COUNT; ++i)
+        {
+            ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+            receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+            if (player[i].id != i)
+            {
+                c_id = player[i - 1].id;
+                break;
+            }
+        }
+        //for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
+        //{
+        //    if (player[c_id].id != player[i].id && player[i].id > 0) {
+        //        //setCursorPos(player[i].x, player[i].y);
+        //        //cout << "□";
+        //        ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+        //        receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+        //        setCursorPos(player[i].x, player[i].y);
+        //        cout << "★";
+        //    }
+        //
+        //}
+        player[c_id].id = c_id;
+        sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
+        bufferLen = static_cast<int>(sizeof(player));
         if (kbhit()) {
             int pressedKey = getch();
             switch (pressedKey) {
             case 72:
             {
                 //위
-                player.key = 116;
-                player.id = c_id;
+                player[c_id].key = 116;
+                player[c_id].id = c_id;
                 sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
                 bufferLen = static_cast<int>(sizeof(player));
-                receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
-                setCursorPos(player.x, player.y + 1);
-                cout << "□";
-                setCursorPos(player.x, player.y);
-                cout << "■";
                 break;
             }
             case 80:
                 //아래
             {
-                player.key = 100;
-                player.id = c_id;
+                player[c_id].key = 100;
+                player[c_id].id = c_id;
                 sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
                 bufferLen = static_cast<int>(sizeof(player));
-                receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
-                setCursorPos(player.x, player.y - 1);
-                cout << "□";
-                setCursorPos(player.x, player.y);
-                cout << "■";
+                //setCursorPos(player[c_id].x, player[c_id].y);
+                //cout << "□";
+                //ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+                //receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
+                //setCursorPos(player[c_id].x, player[c_id].y);
+                //cout << "■";
+                
             }
             break;
             case 75:
                 //왼쪽
             {
-               player.key = 108;
-               player.id = c_id;
+               player[c_id].key = 108;
+               player[c_id].id = c_id;
                sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
                bufferLen = static_cast<int>(sizeof(player));
-               receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
-               setCursorPos(player.x + 2, player.y);
-               cout << "□";
-               setCursorPos(player.x, player.y);
-               cout << "■";
+               //setCursorPos(player[c_id].x, player[c_id].y);
+               //cout << "□";
+               //ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+               //receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
+               //setCursorPos(player[c_id].x, player[c_id].y);
+               //cout << "■";
+              
         
             }
             break;
@@ -114,35 +141,58 @@ int main()
                 //오른쪽
             {
         
-                player.key = 114;
-                player.id = c_id;
+                player[c_id].key = 114;
+                player[c_id].id = c_id;
                 sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
                 bufferLen = static_cast<int>(sizeof(player));
-                receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
-                setCursorPos(player.x - 2, player.y);
-                cout << "□";
-                setCursorPos(player.x, player.y);
-                cout << "■";
+                //setCursorPos(player[c_id].x, player[c_id].y);
+                //cout << "□";
+                //ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+                //receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
+                //setCursorPos(player[c_id].x, player[c_id].y);
+                //    cout << "■";
             }
             break;
             default:
                 break;
+            }   
+           
+            
+        }
+  
+        setCursorPos(player[c_id].x, player[c_id].y);
+        cout << "□";
+        for (int i = 0; i < MAX_CLIENT_COUNT; ++i)
+        {
+            ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+            receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+            
+            if (player[c_id].id == player[i].id)
+            {
+                setCursorPos(player[c_id].x, player[c_id].y);
+                cout << "■";
             }
 
         }
+        setCursorPos(player[c_id].x, player[c_id].y);
+        cout << "□";
+        for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
+        {
+            ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+            receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+            if (player[c_id].id != player[i].id && player[i].id > 0)
+            {
+                setCursorPos(player[i].x, player[i].y);
+                cout << "★";
+            }
+        }
+
+      
         //해야하는것 id어떻게 구분해서 어떻게 클라에게 보낼것인지
         //send recv 반복돌려야하는건지
         //10명 접속 어떻게 구분할것인지
-        sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
-        bufferLen = static_cast<int>(sizeof(player));
-        receiveBytes = recv(serverSocket, (char*)&player, sizeof(player), 0);
-        if (player.id != c_id)
-        {
-            setCursorPos(player.x - 2, player.y);
-            cout << "□";
-            setCursorPos(player.x, player.y);
-            cout << "★";
-        }
+       
+        
         if (bufferLen == 0) break;
 	}
 	closesocket(serverSocket);

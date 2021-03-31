@@ -7,11 +7,33 @@ using namespace std;
 
 #define MAX_BUFFER        1024
 #define SERVER_PORT        3500
-#define MAX_CLIENT_COUNT 11
+#define MAX_CLIENT_COUNT 10
 
 uniform_int_distribution<int> un(0, 7);
 normal_distribution<> nd{ 0.0,1.0 };
 default_random_engine dre{ random_device()() };
+
+struct Player {
+	int x = 0;
+	int y = 0;
+	char key = 0;
+	int id = 0;
+	char playerGUI;
+};
+Player player;
+struct SOCKETINFO
+{
+	WSAOVERLAPPED overlapped;
+	WSABUF dataBuffer;
+	SOCKET socket;
+	char messageBuffer[MAX_BUFFER];
+};
+
+map <SOCKET, SOCKETINFO> clients;
+
+void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags);
+void CALLBACK send_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags);
+
 
 void display_error(const char* msg, int err_no) {
 	WCHAR* lpMsgBuf;
@@ -21,51 +43,22 @@ void display_error(const char* msg, int err_no) {
 	LocalFree(lpMsgBuf);
 }
 
-struct Player {
-	int x = 0;
-	int y = 0;
-	char key = 0;
-	int id = 0;
-	int move = 0;
-};
-Player player[MAX_CLIENT_COUNT];
-struct SOCKETINFO
-{
-	WSAOVERLAPPED overlapped;
-	WSABUF dataBuffer;
-	SOCKET socket;
-	char messageBuffer[MAX_BUFFER];
-};
-int s_id = 1;
-map <SOCKET, SOCKETINFO> clients;
-
-void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags);
-void CALLBACK send_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags);
-
 void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags)
 {
 	SOCKET client_s = reinterpret_cast<SOCKETINFO*>(overlapped)->socket;
 
-	for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
-	{
-		if (player[i].id == i && 't' == player[i].key && player[i].y > 0) {
-			player[i].y -= 1;
-			player[i].move = 1;
-		}
-		else if (player[i].id == i && 'd' == player[i].key && player[i].y < 7) {
-			player[i].y += 1;
-			player[i].move = 1;
-		}
-		else if (player[i].id == i && 'l' == player[i].key && player[i].x > 0) {
-			player[i].x -= 2;
-			player[i].move = 1;
-		}
-		else if (player[i].id == i && 'r' == player[i].key && player[i].x < 14) {
-			player[i].x += 2;
-			player[i].move = 1;
-		}
+	if ('t' == player.key && player.y > 0) {
+		player.y -= 1;
 	}
-	
+	else if ('d' == player.key && player.y < 7) {
+		player.y += 1;
+	}
+	else if ('l' == player.key && player.x > 0) {
+		player.x -= 2;
+	}
+	else if ('r' == player.key && player.x < 14) {
+		player.x += 2;
+	}
 	if (dataBytes == 0)
 	{
 		closesocket(clients[client_s].socket);
@@ -74,24 +67,22 @@ void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overla
 	}  // 클라이언트가 closesocket을 했을 경우
 	clients[client_s].dataBuffer.len = sizeof(player);
 	memset(&(clients[client_s].overlapped), 0, sizeof(WSAOVERLAPPED));
+
+
 	clients[client_s].dataBuffer.buf = (char*)&player;
 
 
-	auto s_send = WSASend(client_s, &clients[client_s].dataBuffer, 1, NULL, 0, overlapped, send_callback);
-	cout << player[1].id << endl;
-	if (s_send == SOCKET_ERROR) {
+	auto sends = WSASend(client_s, &clients[client_s].dataBuffer, 1, NULL, 0, overlapped, send_callback);
+	
+	if (sends == SOCKET_ERROR) {
 		cout << "ERROR!: " << endl;
 		display_error("Send error: ", WSAGetLastError());
-	}
-	for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
-	{
-		player[i].move = 0;
 	}
 }
 
 void CALLBACK send_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags)
 {
-	
+
 	SOCKET client_s = reinterpret_cast<SOCKETINFO*>(overlapped)->socket;
 	if (dataBytes == 0) {
 		closesocket(clients[client_s].socket);
@@ -100,13 +91,13 @@ void CALLBACK send_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overla
 	}  // 클라이언트가 closesocket을 했을 경우
 
 	// WSASend(응답에 대한)의 콜백일 경우
-	clients[client_s].dataBuffer.len = sizeof(player);
+	
 	memset(&(clients[client_s].overlapped), 0, sizeof(WSAOVERLAPPED));
+	clients[client_s].dataBuffer.len = MAX_BUFFER;
 	DWORD flags = 0;
 
-
-	
 	auto result=WSARecv(client_s, &clients[client_s].dataBuffer, 1, 0, &flags, overlapped, recv_callback);
+
 
 	if (result == SOCKET_ERROR) {
 		cout << "ERROR!: " << endl;
@@ -128,22 +119,19 @@ int main()
 	serverAddr.sin_port = htons(SERVER_PORT);
 	serverAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	::bind(listenSocket, (struct sockaddr*)&serverAddr, sizeof(SOCKADDR_IN));
+	//여기서 아이디랑 랜덤좌표 줘야함
 
 	listen(listenSocket, 5);
 	SOCKADDR_IN clientAddr;
 	int addrLen = sizeof(SOCKADDR_IN);
 	memset(&clientAddr, 0, addrLen);
 
-
 	while (true) {
 		SOCKET clientSocket = accept(listenSocket, (struct sockaddr*)&clientAddr, &addrLen);
-		
-		player[s_id].id +=1 ;
-		player[s_id].x = un(dre);
-		player[s_id].x = player[s_id].x * 2;
-		player[s_id].y = un(dre);
-
-		
+		player.id += 1;
+		player.x = un(dre);
+		player.x = player.x * 2;
+		player.y = un(dre);
 		clients[clientSocket] = SOCKETINFO{};
 		clients[clientSocket].socket = clientSocket;
 		clients[clientSocket].dataBuffer.len = sizeof(player);
@@ -153,12 +141,12 @@ int main()
 
 		DWORD flags = 0;
 		//이동처리
-		
+
 		WSASend(clients[clientSocket].socket, &clients[clientSocket].dataBuffer, 1, NULL, 0, &(clients[clientSocket].overlapped), send_callback);
+		cout << player.x << "," << player.y << endl;
 		//WSARecv(clients[clientSocket].socket, &clients[clientSocket].dataBuffer, 1, NULL, &flags, &(clients[clientSocket].overlapped), recv_callback);
 
 	}
 	closesocket(listenSocket);
 	WSACleanup();
 }
-
