@@ -7,15 +7,16 @@ using namespace std;
 
 #define MAX_BUFFER        1024
 #define SERVER_PORT        3500
-#define MAX_CLIENT_COUNT 11
+#define MAX_CLIENT_COUNT 10
 
 uniform_int_distribution<int> un(0, 7);
 normal_distribution<> nd{ 0.0,1.0 };
 default_random_engine dre{ random_device()() };
 
-void display_error(const char* msg, int err_no) {
+void display_error(const char* msg, int err_no)
+{
 	WCHAR* lpMsgBuf;
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err_no, MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), (LPTSTR)&lpMsgBuf, 0, NULL);
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err_no, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
 	cout << msg;
 	wcout << lpMsgBuf << endl;
 	LocalFree(lpMsgBuf);
@@ -36,7 +37,7 @@ struct SOCKETINFO
 	SOCKET socket;
 	char messageBuffer[MAX_BUFFER];
 };
-int s_id = 1;
+int s_id = 0;
 map <SOCKET, SOCKETINFO> clients;
 
 void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overlapped, DWORD lnFlags);
@@ -46,26 +47,28 @@ void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overla
 {
 	SOCKET client_s = reinterpret_cast<SOCKETINFO*>(overlapped)->socket;
 
-	for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
+	for (int i = 0; i < MAX_CLIENT_COUNT; ++i)
 	{
-		if (player[i].id == i && 't' == player[i].key && player[i].y > 0) {
+		if (player[i].id == i+1 && 't' == player[i].key && player[i].y > 0) {
 			player[i].y -= 1;
-			player[i].move = 1;
+		
 		}
-		else if (player[i].id == i && 'd' == player[i].key && player[i].y < 7) {
+		else if (player[i].id == i + 1 && 'd' == player[i].key && player[i].y < 7) {
 			player[i].y += 1;
-			player[i].move = 1;
+			
 		}
-		else if (player[i].id == i && 'l' == player[i].key && player[i].x > 0) {
+		else if (player[i].id == i + 1 && 'l' == player[i].key && player[i].x > 0) {
 			player[i].x -= 2;
-			player[i].move = 1;
+			
 		}
-		else if (player[i].id == i && 'r' == player[i].key && player[i].x < 14) {
+		else if (player[i].id == i + 1 && 'r' == player[i].key && player[i].x < 14) {
 			player[i].x += 2;
-			player[i].move = 1;
+			
 		}
+		
 	}
 	
+
 	if (dataBytes == 0)
 	{
 		closesocket(clients[client_s].socket);
@@ -78,14 +81,9 @@ void CALLBACK recv_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overla
 
 
 	auto s_send = WSASend(client_s, &clients[client_s].dataBuffer, 1, NULL, 0, overlapped, send_callback);
-	cout << player[1].id << endl;
 	if (s_send == SOCKET_ERROR) {
 		cout << "ERROR!: " << endl;
 		display_error("Send error: ", WSAGetLastError());
-	}
-	for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
-	{
-		player[i].move = 0;
 	}
 }
 
@@ -103,11 +101,11 @@ void CALLBACK send_callback(DWORD Error, DWORD dataBytes, LPWSAOVERLAPPED overla
 	clients[client_s].dataBuffer.len = sizeof(player);
 	memset(&(clients[client_s].overlapped), 0, sizeof(WSAOVERLAPPED));
 	DWORD flags = 0;
-
+	cout << player[0].x << endl;
 
 	
 	auto result=WSARecv(client_s, &clients[client_s].dataBuffer, 1, 0, &flags, overlapped, recv_callback);
-
+	cout << player[0].x << endl;
 	if (result == SOCKET_ERROR) {
 		cout << "ERROR!: " << endl;
 		display_error("Recv error: ", WSAGetLastError());
@@ -122,6 +120,7 @@ int main()
 	WSADATA WSAData;
 	WSAStartup(MAKEWORD(2, 2), &WSAData);
 	SOCKET listenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	wcout.imbue(locale("korean"));
 	SOCKADDR_IN serverAddr;
 	memset(&serverAddr, 0, sizeof(SOCKADDR_IN));
 	serverAddr.sin_family = AF_INET;
@@ -142,6 +141,7 @@ int main()
 		player[s_id].x = un(dre);
 		player[s_id].x = player[s_id].x * 2;
 		player[s_id].y = un(dre);
+		s_id += 1;
 
 		
 		clients[clientSocket] = SOCKETINFO{};

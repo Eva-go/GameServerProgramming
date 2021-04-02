@@ -8,7 +8,7 @@ using namespace std;
 #define MAX_BUFFER        1024
 #define SERVER_IP        "127.0.0.1"
 #define SERVER_PORT        3500
-#define MAX_CLIENT_COUNT 11
+#define MAX_CLIENT_COUNT 10
 
 struct Player {
 	int x = 0;
@@ -40,7 +40,7 @@ int currentPosY = 0;
 
 int main()
 {
-    int c_id=1;
+    int c_id=0;
 
 	WSADATA WSAData;
     u_long blockingMode = 0;
@@ -60,56 +60,47 @@ int main()
     int bufferLen = static_cast<int>(sizeof(player));
     int receiveBytes;
     
+    //TODO 배열이 0일때 해결함 하지만 왜 2번클라도 1번클라의 0번을 받아서 쓰는거야?
+    for (int i = 0; i < MAX_CLIENT_COUNT; ++i)
+    {
+        ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+        receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+        if (player[i].id != i&&i>0)
+        {
+            c_id = player[i - 1].id;
+            break;
+        }
+      
 
-    
-    setCursorPos(player[c_id].x, player[c_id].y);
+    }
+    setCursorPos(player[c_id-1].x, player[c_id - 1].y);
     cout << "■";
+
+    player[c_id - 1].id = c_id;
+    sendBytes = send(serverSocket, (char*)&player[c_id - 1], sizeof(player), 0);
+    bufferLen = static_cast<int>(sizeof(player));
     
     while (true) {
         
-        for (int i = 0; i < MAX_CLIENT_COUNT; ++i)
-        {
-            ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
-            receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
-            if (player[i].id != i)
-            {
-                c_id = player[i - 1].id;
-                break;
-            }
-        }
-        //for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
-        //{
-        //    if (player[c_id].id != player[i].id && player[i].id > 0) {
-        //        //setCursorPos(player[i].x, player[i].y);
-        //        //cout << "□";
-        //        ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
-        //        receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
-        //        setCursorPos(player[i].x, player[i].y);
-        //        cout << "★";
-        //    }
-        //
-        //}
-        player[c_id].id = c_id;
-        sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
-        bufferLen = static_cast<int>(sizeof(player));
-        if (kbhit()) {
+     
+        
+       
+        if (kbhit()) {   
             int pressedKey = getch();
             switch (pressedKey) {
             case 72:
             {
                 //위
-                player[c_id].key = 116;
-                player[c_id].id = c_id;
-                sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
+                player[c_id - 1].key = 116;
+                sendBytes = send(serverSocket, (char*)&player[c_id-1], sizeof(player), 0);
                 bufferLen = static_cast<int>(sizeof(player));
                 break;
             }
             case 80:
                 //아래
             {
-                player[c_id].key = 100;
-                player[c_id].id = c_id;
-                sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
+                player[c_id - 1].key = 100;
+                sendBytes = send(serverSocket, (char*)&player[c_id - 1], sizeof(player), 0);
                 bufferLen = static_cast<int>(sizeof(player));
                 //setCursorPos(player[c_id].x, player[c_id].y);
                 //cout << "□";
@@ -123,9 +114,8 @@ int main()
             case 75:
                 //왼쪽
             {
-               player[c_id].key = 108;
-               player[c_id].id = c_id;
-               sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
+               player[c_id - 1].key = 108;
+               sendBytes = send(serverSocket, (char*)&player[c_id - 1], sizeof(player), 0);
                bufferLen = static_cast<int>(sizeof(player));
                //setCursorPos(player[c_id].x, player[c_id].y);
                //cout << "□";
@@ -140,11 +130,10 @@ int main()
             case 77:
                 //오른쪽
             {
-        
-                player[c_id].key = 114;
-                player[c_id].id = c_id;
-                sendBytes = send(serverSocket, (char*)&player, sizeof(player), 0);
+                player[c_id - 1].key = 114;
+                sendBytes = send(serverSocket, (char*)&player[c_id - 1], sizeof(player), 0);
                 bufferLen = static_cast<int>(sizeof(player));
+               
                 //setCursorPos(player[c_id].x, player[c_id].y);
                 //cout << "□";
                 //ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
@@ -159,31 +148,43 @@ int main()
            
             
         }
-  
-        setCursorPos(player[c_id].x, player[c_id].y);
-        cout << "□";
+        if (player[c_id - 1].key != 0)
+        {
+            setCursorPos(player[c_id - 1].x, player[c_id - 1].y);
+            cout << "□";
+            player[c_id - 1].key = 0;
+        }
         for (int i = 0; i < MAX_CLIENT_COUNT; ++i)
         {
-            ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
-            receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
-            
-            if (player[c_id].id == player[i].id)
+            if (player[i].id > 0)
             {
-                setCursorPos(player[c_id].x, player[c_id].y);
-                cout << "■";
+                ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+                receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+                
+                if (player[c_id - 1].id == player[i].id)
+                {
+                    setCursorPos(player[c_id - 1].x, player[c_id - 1].y);
+                    cout << "■";
+                    
+             
+                }
             }
+           
 
         }
-        setCursorPos(player[c_id].x, player[c_id].y);
-        cout << "□";
+        //setCursorPos(player[c_id - 1].x, player[c_id - 1].y);
+        //cout << "□";
         for (int i = 1; i < MAX_CLIENT_COUNT; ++i)
         {
-            ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
-            receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
-            if (player[c_id].id != player[i].id && player[i].id > 0)
+            if (player[i].id > 0)
             {
-                setCursorPos(player[i].x, player[i].y);
-                cout << "★";
+                ioctlsocket(serverSocket, FIONBIO, &nonBlockingMode);
+                receiveBytes = recv(serverSocket, (char*)&player[i], sizeof(player), 0);
+                if (player[c_id - 1].id != player[i].id && player[i].id > 0)
+                {
+                    setCursorPos(player[i].x, player[i].y);
+                    cout << "★";
+                }
             }
         }
 

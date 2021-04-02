@@ -37,13 +37,21 @@ constexpr int SERVER_ID = 0;
 
 unordered_map <int, SESSION> players;
 
+void display_error(const char* msg, int err_no)
+{
+    WCHAR* lpMsgBuf;
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err_no, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
+    cout << msg;
+    wcout << lpMsgBuf << endl;
+    LocalFree(lpMsgBuf);
+}
 
 void send_packet(int p_id,void *p)
 {
     int p_size = reinterpret_cast<unsigned char*>(p)[0];
     int p_type = reinterpret_cast<unsigned char*>(p)[1];
     cout << "To client [ "<<p_id<<"] : ";//디버깅용 (나중에 삭제해야함)
-    cout << "Packet p" << p_type << "]\n";
+    cout << "Packet [" << p_type << "]\n";
 
     EX_OVER *s_over=new EX_OVER; //로컬 변수로 절때 하지말것 send계속 사용할것이니
     s_over->m_op = OP_SEND;
@@ -51,7 +59,12 @@ void send_packet(int p_id,void *p)
     memcpy(s_over->m_packetbuf, p, p_size);
     s_over->m_wsabuf[0].buf = reinterpret_cast<CHAR *>(s_over->m_packetbuf);
     s_over->m_wsabuf[0].len = p_size;
-    WSASend(players[p_id].m_socket, s_over->m_wsabuf, 1, NULL, 0,&s_over->m_over, 0);
+    auto ret = WSASend(players[p_id].m_socket, s_over->m_wsabuf, 1, NULL, 0,&s_over->m_over, 0);
+    if (0 != ret) {
+        auto err_no = WSAGetLastError();
+        if (WSA_IO_PENDING != err_no)
+            display_error("Error in SendPacket: ", err_no);
+    }
 }
 
 
@@ -72,12 +85,17 @@ void send_login_ok_packet(int p_id)
 
 void do_recv(int s_id)
 {
-
     players[s_id].m_recv_over.m_wsabuf[0].buf = reinterpret_cast<char*>(players[s_id].m_recv_over.m_packetbuf) + players[s_id].m_prev_size;
     players[s_id].m_recv_over.m_wsabuf[0].len = MAX_BUFFER - players[s_id].m_prev_size;
     memset(&players[s_id].m_recv_over.m_over, 0, sizeof(players[s_id].m_recv_over.m_over));
     DWORD r_flag = 0;
-    WSARecv(players[s_id].m_socket, players[s_id].m_recv_over.m_wsabuf, 1, NULL, &r_flag, &players[s_id].m_recv_over.m_over, NULL);
+    auto ret = WSARecv(players[s_id].m_socket, players[s_id].m_recv_over.m_wsabuf, 1, NULL, &r_flag, &players[s_id].m_recv_over.m_over, NULL);
+
+    if (0 != ret) {
+        auto err_no = WSAGetLastError();
+        if (WSA_IO_PENDING != err_no)
+            display_error("Error in SendPacket: ", err_no);
+    }
 }
 
 int get_new_player_id()
@@ -108,8 +126,8 @@ void do_move(int p_id, DIRECTION dir)
     {
     case D_N: if(y>0)y--; break;
     case D_S: if (y < (WORLD_Y_SIZE - 1))y++; break;
-    case D_E: if (x > 0)x--; break;
-    case D_W: if (x < (WORLD_X_SIZE - 1))x++; break;
+    case D_W: if (x > 0)x--; break;
+    case D_E: if (x < (WORLD_X_SIZE - 1))x++; break;
 
     }
 
@@ -139,14 +157,6 @@ void proccess_packet(int p_id, unsigned char* p_buf) {
     }
 }
 
-void display_error(const char* msg, int err_no)
-{
-    WCHAR* lpMsgBuf;
-    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err_no, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
-    cout << msg;
-    wcout << lpMsgBuf << endl;
-    LocalFree(lpMsgBuf);
-}
 
 void disconnect(int p_id)
 {
