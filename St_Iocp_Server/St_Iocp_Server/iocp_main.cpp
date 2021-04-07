@@ -107,7 +107,29 @@ int get_new_player_id()
     return -1;
 }
 
-void send_move_packet(int p_id)
+void send_add_player(int c_id, int p_id)
+{
+    s2c_add_player p;
+    p.id = p_id;
+    p.size = sizeof(p);
+    p.type = S2C_ADD_PLAYER;
+    p.x = players[p_id].x;
+    p.y = players[p_id].y;
+    p.race = 0;
+    send_packet(c_id, &p);
+}
+
+void send_remove_player(int c_id, int p_id)
+{
+    s2c_remove_player p;
+    p.id = p_id;
+    p.size = sizeof(p);
+    p.type = S2C_REMOVE_PLAYER;
+    send_packet(c_id, &p);
+}
+
+
+void send_move_packet(int c_id,int p_id)
 {
     s2c_move_player p;
     p.id = p_id;
@@ -115,7 +137,7 @@ void send_move_packet(int p_id)
     p.type = S2C_MOVE_PLAYER;
     p.x = players[p_id].x;
     p.y = players[p_id].y;
-    send_packet(p_id, &p);
+    send_packet(c_id, &p);
 }
 
 void do_move(int p_id, DIRECTION dir) 
@@ -131,7 +153,8 @@ void do_move(int p_id, DIRECTION dir)
 
     }
 
-    send_move_packet(p_id);
+   for (auto &pl: players) 
+       send_move_packet(pl.second.id,p_id);
 }
 
 void proccess_packet(int p_id, unsigned char* p_buf) {
@@ -162,6 +185,8 @@ void disconnect(int p_id)
 {
     closesocket(players[p_id].m_socket);
     players.erase(p_id);
+    for (auto& pl : players)
+        send_remove_player(pl.second.id, p_id);
 }
 
 int main()
@@ -249,6 +274,14 @@ int main()
                 players[c_id].m_socket = c_socket;
                 players[c_id].m_prev_size = 0;
                 CreateIoCompletionPort(reinterpret_cast<HANDLE>(c_socket), h_iocp, c_id, 0);
+                //주위에 누가 있는지 알려줘야함
+                for (auto& pl : players) {
+                    if (c_id == pl.second.id) continue;
+                    send_add_player(c_id, pl.second.id);
+                    send_add_player(pl.second.id, c_id);
+                }
+
+
                 do_recv(c_id);
             }
             else {
