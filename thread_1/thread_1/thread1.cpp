@@ -9,5 +9,6 @@ void do_thread()
 int main()
 {
 	std::thread t1{do_thread};
-	std::cout << "hello world";
+	std::cout << "hello world\n";
+	t1.join();
 }
