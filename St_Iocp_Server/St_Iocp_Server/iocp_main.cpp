@@ -232,8 +232,11 @@ int main()
             else {
                 display_error("GQCS:", WSAGetLastError());
                 disconnect(key);
-            }
-            
+            }   
+        }
+        if (num_bytes == 0){
+            disconnect(key);
+            continue;
         }
 
 
