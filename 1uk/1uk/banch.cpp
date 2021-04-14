@@ -2,17 +2,20 @@
 #include <thread>
 #include <chrono>
 #include <vector>
-
+#include <mutex>
 const auto MAX_THREADS = 64;
 using namespace std;
 using namespace std::chrono;
 
-volatile int sum;
-
+volatile int sum=0;
+mutex g_lock;
 void thread_func(int num_threads)
 {
-	for (auto i = 0; i < 50000000 / num_threads; ++i)
+	for (auto i = 0; i < 50000000 / num_threads; ++i) {
+		g_lock.lock();
 		sum = sum + 2;
+		g_lock.unlock();
+	}
 }
 
 int main()
