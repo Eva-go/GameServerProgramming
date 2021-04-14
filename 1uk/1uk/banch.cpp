@@ -11,11 +11,11 @@ volatile int sum=0;
 mutex g_lock;
 void thread_func(int num_threads)
 {
-	for (auto i = 0; i < 50000000 / num_threads; ++i) {
 		g_lock.lock();
+	for (auto i = 0; i < 50000000 / num_threads; ++i) {
 		sum = sum + 2;
-		g_lock.unlock();
 	}
+		g_lock.unlock();
 }
 
 int main()
