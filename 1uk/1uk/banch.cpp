@@ -7,13 +7,13 @@ const auto MAX_THREADS = 16;
 using namespace std;
 using namespace std::chrono;
 
-volatile int sum[MAX_THREADS];
+volatile int sum[MAX_THREADS*16];
 mutex g_lock;
 void thread_func(int num_threads,int th_id)
 {
 	
 	for (auto i = 0; i < 50000000 / num_threads; ++i) {
-		sum[th_id] = sum[th_id] + 2;
+		sum[th_id*16] = sum[th_id*16] + 2;
 	}
 	
 }
