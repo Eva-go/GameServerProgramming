@@ -8,22 +8,24 @@ using namespace chrono;
 constexpr int LOOP_COUNT = 500000000;
 volatile int sum = 0;
 
-void worker()
-{
-	int loop = LOOP_COUNT / 2;
-	for (int i = 0; i < loop; ++i)
-		sum = sum + 2;
-}
-
+//void worker()
+//{
+//	int loop = LOOP_COUNT / 2;
+//	for (int i = 0; i < loop; ++i)
+//		sum = sum + 2;
+//}
+//
 int main()
 {
 	//나만 안배운 volatile
 	
 	auto start_t = high_resolution_clock::now();
-	thread t1{ worker };
-	thread t2{ worker };
-	t1.join();
-	t2.join();
+	//thread t1{ worker };
+	//thread t2{ worker };
+	//t1.join();
+	//t2.join();
+	for (int i = 0; i < LOOP_COUNT; ++i)
+			sum = sum + 2;
 	auto end_t = high_resolution_clock::now();
 	auto exec_t = end_t - start_t;
 
