@@ -3,11 +3,13 @@
 using namespace std;
 #include <WS2tcpip.h>
 #include <MSWSock.h>
+#include <thread>
+#include <vector>
 #include "protocol.h"
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "MSWSock.lib")
 
-
+#define CORE 4
 
 
 enum OP_TYPE { OP_RECV, OP_SEND, OP_ACCEPT };
@@ -17,6 +19,7 @@ struct EX_OVER
     WSABUF         m_wsabuf[1];
     unsigned char   m_packetbuf[MAX_BUFFER];
     OP_TYPE         m_op;
+    SOCKET          m_csocket;      //OP_ACCEPT에서만 사용
 };
 
 
@@ -179,8 +182,6 @@ void proccess_packet(int p_id, unsigned char* p_buf) {
         while (true);
     }
 }
-
-
 void disconnect(int p_id)
 {
     closesocket(players[p_id].m_socket);
@@ -189,32 +190,9 @@ void disconnect(int p_id)
         send_remove_player(pl.second.id, p_id);
 }
 
-int main()
+
+void worker(HANDLE h_iocp,SOCKET l_socket)
 {
-    
-    WSADATA WSAData;
-    WSAStartup(MAKEWORD(2, 2), &WSAData);
-    HANDLE h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
-
-    wcout.imbue(locale("korean"));
-
-    SOCKET listenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-    CreateIoCompletionPort(reinterpret_cast<HANDLE>(listenSocket), h_iocp, SERVER_ID, 0);
-    SOCKADDR_IN serverAddr;
-    memset(&serverAddr, 0, sizeof(SOCKADDR_IN));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(SERVER_PORT);
-    serverAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
-    ::bind(listenSocket, (struct sockaddr*)&serverAddr, sizeof(SOCKADDR_IN));
-    listen(listenSocket, SOMAXCONN);
-
-    EX_OVER accept_over;
-    accept_over.m_op = OP_ACCEPT;
-    memset(&accept_over.m_over, 0, sizeof(accept_over.m_over));
-    SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-    AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
-
-
     while (true) {
         DWORD num_bytes;
         ULONG_PTR ikey;
@@ -232,9 +210,9 @@ int main()
             else {
                 display_error("GQCS:", WSAGetLastError());
                 disconnect(key);
-            }   
+            }
         }
-        if (num_bytes == 0){
+        if (num_bytes == 0) {
             disconnect(key);
             continue;
         }
@@ -274,9 +252,9 @@ int main()
                 players[c_id].id = c_id;
                 players[c_id].m_name[0] = 0;
                 players[c_id].m_recv_over.m_op = OP_RECV;
-                players[c_id].m_socket = c_socket;
+                players[c_id].m_socket = ex_over->m_csocket;
                 players[c_id].m_prev_size = 0;
-                CreateIoCompletionPort(reinterpret_cast<HANDLE>(c_socket), h_iocp, c_id, 0);
+                CreateIoCompletionPort(reinterpret_cast<HANDLE>(ex_over->m_csocket), h_iocp, c_id, 0);
                 //주위에 누가 있는지 알려줘야함
                 for (auto& pl : players) {
                     if (c_id == pl.second.id) continue;
@@ -288,17 +266,52 @@ int main()
                 do_recv(c_id);
             }
             else {
-                closesocket(c_socket);
+                closesocket(players[c_id].m_socket);
             }
 
             //나중에 하나로 함수만드셈 2번쓰니까 뭘봐 
-            memset(&accept_over.m_over, 0, sizeof(accept_over.m_over));
-            c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-            AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
+            memset(&ex_over->m_over, 0, sizeof(ex_over->m_over));
+            SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+            ex_over->m_csocket = c_socket;
+            AcceptEx(l_socket, c_socket, ex_over->m_packetbuf, 0, 32, 32, NULL, &ex_over->m_over);
         }
-            break;
+                      break;
         }
     }
+}
+
+
+int main()
+{
+    
+    WSADATA WSAData;
+    WSAStartup(MAKEWORD(2, 2), &WSAData);
+    HANDLE h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
+
+    wcout.imbue(locale("korean"));
+
+    SOCKET listenSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+    CreateIoCompletionPort(reinterpret_cast<HANDLE>(listenSocket), h_iocp, SERVER_ID, 0);
+    SOCKADDR_IN serverAddr;
+    memset(&serverAddr, 0, sizeof(SOCKADDR_IN));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(SERVER_PORT);
+    serverAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
+    ::bind(listenSocket, (struct sockaddr*)&serverAddr, sizeof(SOCKADDR_IN));
+    listen(listenSocket, SOMAXCONN);
+
+    EX_OVER accept_over;
+    accept_over.m_op = OP_ACCEPT;
+    memset(&accept_over.m_over, 0, sizeof(accept_over.m_over));
+    SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+    accept_over.m_csocket = c_socket;
+    AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
+
+    vector<thread> worker_threads;
+    for (int i = 0; i < CORE; ++i)
+        worker_threads.emplace_back(worker,h_iocp,listenSocket);
+    for (auto& th : worker_threads)
+        th.join();
     closesocket(listenSocket);
     WSACleanup();
 }
