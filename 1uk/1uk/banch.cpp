@@ -20,11 +20,13 @@ int main()
 	//나만 안배운 volatile
 	
 	auto start_t = high_resolution_clock::now();
-	thread t1{ worker };
-	thread t2{ worker };
-	t1.join();
-	t2.join();
-	
+	//thread t1{ worker };
+	//thread t2{ worker };
+	//t1.join();
+	//t2.join();
+	worker();
+	worker();
+
 	auto end_t = high_resolution_clock::now();
 	auto exec_t = end_t - start_t;
 
