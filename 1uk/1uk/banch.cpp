@@ -11,11 +11,13 @@ volatile int sum=0;
 mutex g_lock;
 void thread_func(int num_threads)
 {
-		g_lock.lock();
+	volatile int local_sum = 0;
 	for (auto i = 0; i < 50000000 / num_threads; ++i) {
-		sum = sum + 2;
+		local_sum = local_sum + 2;
 	}
-		g_lock.unlock();
+	g_lock.lock();
+	sum += local_sum;
+	g_lock.unlock();
 }
 
 int main()
