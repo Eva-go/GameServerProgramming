@@ -3,7 +3,7 @@
 #include <chrono>
 #include <vector>
 #include <mutex>
-const auto MAX_THREADS = 64;
+const auto MAX_THREADS = 16;
 using namespace std;
 using namespace std::chrono;
 
