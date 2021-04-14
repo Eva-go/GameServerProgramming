@@ -7,17 +7,15 @@ const auto MAX_THREADS = 16;
 using namespace std;
 using namespace std::chrono;
 
-volatile int sum=0;
+volatile int sum[MAX_THREADS];
 mutex g_lock;
-void thread_func(int num_threads)
+void thread_func(int num_threads,int th_id)
 {
-	volatile int local_sum = 0;
+	
 	for (auto i = 0; i < 50000000 / num_threads; ++i) {
-		local_sum = local_sum + 2;
+		sum[th_id] = sum[th_id] + 2;
 	}
-	g_lock.lock();
-	sum += local_sum;
-	g_lock.unlock();
+	
 }
 
 int main()
@@ -25,18 +23,21 @@ int main()
 	vector<thread> threads;
 	for (auto i = 1; i <= MAX_THREADS; i *= 2)
 	{
-		sum = 0;
+		for (auto& s : sum) s = 0;
 		threads.clear();
 		auto start = high_resolution_clock::now();
 
 		for (auto j = 0; j < i; ++j)
-			threads.emplace_back(thread{ thread_func, i });
+			threads.emplace_back(thread{ thread_func, i ,j});
 
 		for (auto& tmp : threads)
 			tmp.join();
 
+		int t_sum = 0;
+		for (auto& s : sum)
+			t_sum = t_sum + s;
 		auto duration = high_resolution_clock::now() - start;
-		cout << i << " Threads" << "  Sum = " << sum;
+		cout << i << " Threads" << "  Sum = " << t_sum;
 		cout << " Duration = " << duration_cast<milliseconds>(duration).count() << " milliseconds\n";
 	}
 }
