@@ -5,6 +5,8 @@ using namespace std;
 #include <MSWSock.h>
 #include <thread>
 #include <vector>
+#include <mutex>
+#include <array>
 #include "protocol.h"
 #pragma comment(lib, "Ws2_32.lib")
 #pragma comment(lib, "MSWSock.lib")
@@ -22,9 +24,11 @@ struct EX_OVER
     SOCKET          m_csocket;      //OP_ACCEPT에서만 사용
 };
 
-
+enum PL_STATE {PLST_FREE,PLST_CONNECTED,PLST_INGAME};
 struct SESSION
 {
+    mutex m_slock;
+    PL_STATE m_state;
     SOCKET   m_socket;
     int      id;
 
@@ -38,7 +42,7 @@ struct SESSION
 
 constexpr int SERVER_ID = 0;
 
-unordered_map <int, SESSION> players;
+array <SESSION, MAX_USER+1> players;
 
 void display_error(const char* msg, int err_no)
 {
