@@ -105,12 +105,14 @@ void do_recv(int s_id)
     }
 }
 
-int get_new_player_id()
+int get_new_player_id(SOCKET p_socket)
 {
     for (int i = SERVER_ID + 1; i < MAX_USER; ++i) {
         lock_guard<mutex>lg{ players[i].m_slock }; //lock_guard 초기값으로 가지는 가드(자동 언락)
         if (PLST_FREE == players[i].m_state) {
             players[i].m_state = PLST_CONNECTED;
+            players[i].m_socket = p_socket;
+            players[i].m_name[0] = 0;
             return i;
         }
     }
@@ -264,10 +266,8 @@ void worker(HANDLE h_iocp,SOCKET l_socket)
             delete ex_over;
             break;
         case OP_ACCEPT: {
-            int c_id = get_new_player_id();
+            int c_id = get_new_player_id(ex_over->m_csocket);
             if (-1 != c_id) {
-                players[c_id] = SESSION{};
-                players[c_id].id = c_id;
                 players[c_id].m_name[0] = 0;
                 players[c_id].m_recv_over.m_op = OP_RECV;
                 players[c_id].m_socket = ex_over->m_csocket;
