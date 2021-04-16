@@ -245,7 +245,7 @@ void worker(HANDLE h_iocp,SOCKET l_socket)
                 disconnect(key);
             }
         }
-        if (num_bytes == 0) {
+        if ((key !=SERVER_ID)&&(num_bytes == 0)) {
             disconnect(key);
             continue;
         }
@@ -331,7 +331,12 @@ int main()
     memset(&accept_over.m_over, 0, sizeof(accept_over.m_over));
     SOCKET c_socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
     accept_over.m_csocket = c_socket;
-    AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
+    BOOL ret = AcceptEx(listenSocket, c_socket, accept_over.m_packetbuf, 0, 32, 32, NULL, &accept_over.m_over);
+    if (FALSE == ret) {
+        int err_num = WSAGetLastError();
+        if(err_num != WSA_IO_PENDING)
+        display_error("AcceptEX Error", err_num);
+    }
 
     vector<thread> worker_threads;
     for (int i = 0; i < CORE; ++i)
