@@ -108,8 +108,11 @@ void do_recv(int s_id)
 int get_new_player_id()
 {
     for (int i = SERVER_ID + 1; i < MAX_USER; ++i) {
-        if (0 == players.count(i)) return i;
-      
+        lock_guard<mutex>lg{ players[i].m_slock }; //lock_guard 초기값으로 가지는 가드(자동 언락)
+        if (PLST_FREE == players[i].m_state) {
+            players[i].m_state = PLST_CONNECTED;
+            return i;
+        }
     }
     return -1;
 }
@@ -160,8 +163,12 @@ void do_move(int p_id, DIRECTION dir)
 
     }
 
-   for (auto &pl: players) 
-       send_move_packet(pl.second.id,p_id);
+    for (auto& pl : players) {
+        lock_guard<mutex>(pl.m_slock);
+        if(PLST_INGAME == pl.m_state)
+            send_move_packet(pl.id,p_id);
+
+    }
 }
 
 void proccess_packet(int p_id, unsigned char* p_buf) {
@@ -287,7 +294,11 @@ void worker(HANDLE h_iocp,SOCKET l_socket)
 
 int main()
 {
-    
+    for (int i = 0; i < MAX_USER + 1;++i) {
+        auto& pl = players[i];
+        pl.id = i;
+        pl.m_state = PLST_FREE;
+    }
     WSADATA WSAData;
     WSAStartup(MAKEWORD(2, 2), &WSAData);
     HANDLE h_iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
