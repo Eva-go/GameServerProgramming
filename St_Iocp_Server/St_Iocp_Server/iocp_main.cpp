@@ -164,7 +164,7 @@ void do_move(int p_id, DIRECTION dir)
     }
 
     for (auto& pl : players) {
-        lock_guard<mutex>(pl.m_slock);
+        lock_guard<mutex> gl{ pl.m_slock };
         if(PLST_INGAME == pl.m_state)
             send_move_packet(pl.id,p_id);
 
@@ -195,10 +195,17 @@ void proccess_packet(int p_id, unsigned char* p_buf) {
 }
 void disconnect(int p_id)
 {
-    closesocket(players[p_id].m_socket);
-    players.erase(p_id);
-    for (auto& pl : players)
-        send_remove_player(pl.second.id, p_id);
+    {
+        lock_guard<mutex> gl{ players[p_id].m_slock };
+        closesocket(players[p_id].m_socket);
+        players[p_id].m_state = PLST_FREE; //데드락 걸리기 때문에 범위를 지정한다.
+    }
+    for (auto& pl : players){
+        lock_guard<mutex> gl2{ pl.m_slock };
+        if(PLST_INGAME==pl.m_state)
+            send_remove_player(pl.id, p_id);
+
+    }
 }
 
 
