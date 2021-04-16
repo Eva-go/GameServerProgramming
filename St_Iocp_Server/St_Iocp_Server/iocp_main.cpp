@@ -181,6 +181,18 @@ void proccess_packet(int p_id, unsigned char* p_buf) {
         c2s_login* packet = reinterpret_cast<c2s_login*>(p_buf);
         strcpy_s(players[p_id].m_name, packet->name);
         send_login_ok_packet(p_id);
+        players[p_id].m_state = PLST_INGAME;
+        //주위에 누가 있는지 알려줘야함 (모든정보가 도착햇을때!)
+        for (auto& pl : players) {
+            if (p_id != pl.id) {
+                lock_guard<mutex>gl{ pl.m_slock };
+                if (PLST_INGAME == pl.m_state) {
+                    send_add_player(pl.id, p_id);
+                    send_add_player(p_id, pl.id);    
+                }
+            }
+        }
+
     }
        
         break;
@@ -268,18 +280,9 @@ void worker(HANDLE h_iocp,SOCKET l_socket)
         case OP_ACCEPT: {
             int c_id = get_new_player_id(ex_over->m_csocket);
             if (-1 != c_id) {
-                players[c_id].m_name[0] = 0;
                 players[c_id].m_recv_over.m_op = OP_RECV;
-                players[c_id].m_socket = ex_over->m_csocket;
                 players[c_id].m_prev_size = 0;
                 CreateIoCompletionPort(reinterpret_cast<HANDLE>(ex_over->m_csocket), h_iocp, c_id, 0);
-                //주위에 누가 있는지 알려줘야함
-                for (auto& pl : players) {
-                    if (c_id == pl.second.id) continue;
-                    send_add_player(c_id, pl.second.id);
-                    send_add_player(pl.second.id, c_id);
-                }
-
 
                 do_recv(c_id);
             }
