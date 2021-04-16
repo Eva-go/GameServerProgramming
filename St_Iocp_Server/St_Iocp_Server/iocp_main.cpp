@@ -179,6 +179,7 @@ void proccess_packet(int p_id, unsigned char* p_buf) {
     {
     case C2S_LOGIN: {
         c2s_login* packet = reinterpret_cast<c2s_login*>(p_buf);
+        lock_guard<mutex> gl2{ players[p_id].m_slock };
         strcpy_s(players[p_id].m_name, packet->name);
         send_login_ok_packet(p_id);
         players[p_id].m_state = PLST_INGAME;
