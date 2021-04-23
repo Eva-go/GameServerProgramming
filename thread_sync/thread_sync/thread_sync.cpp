@@ -1,31 +1,42 @@
 #include <iostream>
 #include <thread>
-#include <mutex>
 //버그를 보려면 버전16.8을 사용
-
 using namespace std;
 
-mutex m;
-int g_data = 0;
-volatile bool g_ready = false;
+volatile int sum = 0;
+volatile int v = 0;
+volatile bool flags[2] = { false,false };
 
-void receiver()
+void p_lock(int t_id)
 {
-	while (false == g_ready);
-	cout << "I received " << g_data << "\n";
+	int other = 1 - t_id;
+	flags[t_id] = true;
+	v = t_id;
+	while ((true == flags[other]) && v == t_id);
 }
 
-void sender()
+void p_unlock(int t_id)
 {
-	g_data = 999;
-	g_ready = true;
+	flags[t_id] = false;
 }
+
+void worker(int t_id)
+{
+	for (int i = 0; i < 25000000; ++i) {
+		p_lock(t_id);
+		sum = sum + 2;
+		p_unlock(t_id);
+	}
+}
+
 
 int main()
 {
-	thread t1{ receiver };
+	thread t1{ worker,0 };
 	//this_thread::sleep_for(1);
-	thread t2{ sender };
+	thread t2{ worker,1 };
 	t2.join();
 	t1.join();
+
+	cout << "SUM : " << sum;
 }
