@@ -12,6 +12,7 @@ void p_lock(int t_id)
 	int other = 1 - t_id;
 	flags[t_id] = true;
 	v = t_id;
+	atomic_thread_fence(memory_order_seq_cst);
 	while ((true == flags[other]) && v == t_id);
 }
 
@@ -28,7 +29,6 @@ void worker(int t_id)
 		p_unlock(t_id);
 	}
 }
-
 
 int main()
 {
