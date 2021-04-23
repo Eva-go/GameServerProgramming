@@ -6,7 +6,7 @@
 using namespace std;
 
 int g_data = 0;
-bool g_ready = false;
+volatile bool g_ready = false;
 
 void receiver()
 {
@@ -25,6 +25,6 @@ int main()
 	thread t1{ receiver };
 	//this_thread::sleep_for(1);
 	thread t2{ sender };
-	t1.join();
 	t2.join();
+	t1.join();
 }
