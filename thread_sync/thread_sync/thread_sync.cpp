@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 
+//버그를 보려면 버전16.8을 사용
+
 using namespace std;
 
 int g_data = 0;
