@@ -7,25 +7,18 @@ using namespace std;
 
 mutex m;
 int g_data = 0;
-bool g_ready = false;
+volatile bool g_ready = false;
 
 void receiver()
 {
-	m.lock();
-	while (false == g_ready) {
-		m.unlock();
-		m.lock();
-	}
-	m.unlock();
+	while (false == g_ready);
 	cout << "I received " << g_data << "\n";
 }
 
 void sender()
 {
 	g_data = 999;
-	m.lock();
 	g_ready = true;
-	m.unlock();
 }
 
 int main()
