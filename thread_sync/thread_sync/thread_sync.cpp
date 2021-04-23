@@ -12,7 +12,10 @@ bool g_ready = false;
 void receiver()
 {
 	m.lock();
-	while (false == g_ready);
+	while (false == g_ready) {
+		m.unlock();
+		m.lock();
+	}
 	m.unlock();
 	cout << "I received " << g_data << "\n";
 }
