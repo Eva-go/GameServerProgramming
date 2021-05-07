@@ -36,6 +36,7 @@ struct SESSION
 
 	char m_name[200];
 	short	x, y;
+	int move_time;
 };
 
 constexpr int SERVER_ID = 0;
@@ -126,6 +127,7 @@ void send_move_packet(int c_id, int p_id)
 	p.type = S2C_MOVE_PLAYER;
 	p.x = players[p_id].x;
 	p.y = players[p_id].y;
+	p.move_time = players[p_id].move_time;
 	send_packet(c_id, &p);
 }
 
@@ -154,6 +156,7 @@ void do_move(int p_id, DIRECTION dir)
 {
 	auto &x = players[p_id].x;
 	auto &y = players[p_id].y;
+	
 	switch (dir) {
 	case D_N: if (y> 0) y--; break;
 	case D_S: if (y < (WORLD_Y_SIZE - 1)) y++; break;
@@ -192,6 +195,7 @@ void process_packet(int p_id, unsigned char* p_buf)
 		break;
 	case C2S_MOVE: {
 		c2s_move* packet = reinterpret_cast<c2s_move*>(p_buf);
+		players[p_id].move_time = packet->move_time;
 		do_move(p_id, packet->dr);
 	}
 		break;

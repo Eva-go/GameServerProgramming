@@ -3,9 +3,9 @@
 constexpr int MAX_NAME = 100;
 constexpr int MAX_BUFFER = 1024;
 constexpr short SERVER_PORT = 3500;
-constexpr int WORLD_X_SIZE = 8;
-constexpr int WORLD_Y_SIZE = 8;
-constexpr int MAX_USER = 10;
+constexpr int WORLD_X_SIZE = 400;
+constexpr int WORLD_Y_SIZE = 400;
+constexpr int MAX_USER = 5000;
 
 constexpr unsigned char C2S_LOGIN = 1;
 constexpr unsigned char C2S_MOVE = 2;
@@ -26,6 +26,7 @@ struct c2s_move {
 	unsigned char size;
 	unsigned char type;
 	DIRECTION dr;		
+	int move_time;	//클라이언트 에서 패킷을 보낸 시간,밀리세컨드(ms)
 };
 
 struct s2c_login_ok {
@@ -50,6 +51,7 @@ struct s2c_move_player {
 	unsigned char type;
 	int		id;
 	short	x, y;
+	int move_time; //클라이언트에서 전송한 시간을 그대로 전송
 };
 
 struct s2c_remove_player {

@@ -18,7 +18,7 @@
     <ClInclude Include="NetworkModule.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\simple_iocp_server\Project1\protocol.h">
+    <ClInclude Include="..\..\st_iocp_server\st_iocp_server\protocol.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

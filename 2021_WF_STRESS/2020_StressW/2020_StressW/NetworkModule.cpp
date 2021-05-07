@@ -27,7 +27,7 @@ const static int MAX_BUFF_SIZE = 255;
 
 #pragma comment (lib, "ws2_32.lib")
 
-#include "..\..\simple_iocp_server\Project1\protocol.h"
+#include "..\..\st_iocp_server\st_iocp_server\protocol.h"
 
 HANDLE g_hiocp;
 
@@ -127,8 +127,8 @@ void SendPacket(int cl, void* packet)
 void ProcessPacket(int ci, unsigned char packet[])
 {
 	switch (packet[1]) {
-	case S2C_PACKET_PC_MOVE: {
-		s2c_packet_pc_move* move_packet = reinterpret_cast<s2c_packet_pc_move*>(packet);
+	case S2C_MOVE_PLAYER: {
+		s2c_move_player* move_packet = reinterpret_cast<s2c_move_player*>(packet);
 		if (move_packet->id < MAX_CLIENTS) {
 			int my_id = client_map[move_packet->id];
 			if (-1 != my_id) {
@@ -146,13 +146,13 @@ void ProcessPacket(int ci, unsigned char packet[])
 		}
 	}
 					   break;
-	case S2C_PACKET_PC_LOGIN: break;
-	case S2C_PACKET_PC_LOGOUT: break;
-	case S2C_PACKET_LOGIN_INFO:
+	case S2C_ADD_PLAYER: break;
+	case S2C_REMOVE_PLAYER: break;
+	case S2C_LOGIN_OK:
 	{
 		g_clients[ci].connected = true;
 		active_clients++;
-		s2c_packet_login_info* login_packet = reinterpret_cast<s2c_packet_login_info*>(packet);
+		s2c_login_ok* login_packet = reinterpret_cast<s2c_login_ok*>(packet);
 		int my_id = ci;
 		client_map[login_packet->id] = my_id;
 		g_clients[my_id].id = login_packet->id;
@@ -313,12 +313,12 @@ void Adjust_Number_Of_Client()
 	DWORD recv_flag = 0;
 	CreateIoCompletionPort(reinterpret_cast<HANDLE>(g_clients[num_connections].client_socket), g_hiocp, num_connections, 0);
 
-	c2s_packet_login l_packet;
+	c2s_login l_packet;
 
 	int temp = num_connections;
 	sprintf_s(l_packet.name, "%d", temp);
 	l_packet.size = sizeof(l_packet);
-	l_packet.type = C2S_PACKET_LOGIN;
+	l_packet.type = C2S_LOGIN;
 	SendPacket(num_connections, &l_packet);
 
 
@@ -347,14 +347,14 @@ void Test_Thread()
 			if (false == g_clients[i].connected) continue;
 			if (g_clients[i].last_move_time + 1s > high_resolution_clock::now()) continue;
 			g_clients[i].last_move_time = high_resolution_clock::now();
-			c2s_packet_move my_packet;
+			c2s_move my_packet;
 			my_packet.size = sizeof(my_packet);
-			my_packet.type = C2S_PACKET_MOVE;
+			my_packet.type = C2S_MOVE;
 			switch (rand() % 4) {
-			case 0: my_packet.dir = 0; break;
-			case 1: my_packet.dir = 1; break;
-			case 2: my_packet.dir = 2; break;
-			case 3: my_packet.dir = 3; break;
+			case 0: my_packet.dr = D_N; break;
+			case 1: my_packet.dr = D_S; break;
+			case 2: my_packet.dr = D_E; break;
+			case 3: my_packet.dr = D_W; break;
 			}
 			my_packet.move_time = static_cast<unsigned>(duration_cast<milliseconds>(high_resolution_clock::now().time_since_epoch()).count());
 			SendPacket(i, &my_packet);
