@@ -27,7 +27,7 @@ enum PL_STATE { PLST_FREE, PLST_CONNECTED, PLST_INGAME };
 struct SESSION
 {
 	mutex  m_slock;
-	PL_STATE m_state;
+	atomic <PL_STATE> m_state;
 	SOCKET m_socket;
 	int		id;
 
@@ -170,7 +170,7 @@ void do_move(int p_id, DIRECTION dir)
 	case D_E: if (x < (WORLD_X_SIZE - 1)) x++; break;
 	}
 	for (auto& pl : players){
-		lock_guard <mutex> lg (pl.m_slock);
+		//lock_guard <mutex> lg (pl.m_slock);
 		if (PLST_INGAME == pl.m_state)
 			send_move_packet(pl.id, p_id);
 	}
