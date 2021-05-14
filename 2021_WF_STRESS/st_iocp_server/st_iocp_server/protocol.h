@@ -6,6 +6,7 @@ constexpr short SERVER_PORT = 3500;
 constexpr int WORLD_X_SIZE = 400;
 constexpr int WORLD_Y_SIZE = 400;
 constexpr int MAX_USER = 5000;
+constexpr int VIEW_RADIUS = 5;
 
 constexpr unsigned char C2S_LOGIN = 1;
 constexpr unsigned char C2S_MOVE = 2;

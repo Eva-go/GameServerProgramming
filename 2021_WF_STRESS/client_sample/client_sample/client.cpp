@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Network.hpp>
 #include <iostream>
+#include <chrono>
 using namespace std;
 
 #ifdef _DEBUG
@@ -291,6 +292,7 @@ int main()
 	wcout.imbue(locale("korean"));
 	sf::Socket::Status status = socket.connect("127.0.0.1", SERVER_PORT);
 	string name{ "PL" };
+	//int tt = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch();
 	name += to_string(rand() % 100);
 	send_login_packet(name);
 

@@ -1,5 +1,5 @@
 #include <iostream>
-#include <unordered_map>
+#include <unordered_set>
 #include <thread>
 #include <vector>
 #include <mutex>
@@ -37,6 +37,8 @@ struct SESSION
 	char m_name[200];
 	short	x, y;
 	int move_time;
+	unordered_set<int> m_view_list;
+	mutex m_vl;
 };
 
 constexpr int SERVER_ID = 0;
@@ -52,6 +54,15 @@ void display_error(const char* msg, int err_no)
 	wcout << lpMsgBuf << endl;
 	LocalFree(lpMsgBuf);
 }
+
+bool can_see(int id_a, int id_b)
+{
+	return VIEW_RADIUS >= abs(players[id_a].x - players[id_b].x)&& //2차원 거리 계산
+		VIEW_RADIUS >= abs(players[id_a].y - players[id_b].y);
+
+}
+
+void process_packet(int p_id, unsigned char* p_buf);
 
 void disconnect(int p_id);
 
@@ -160,19 +171,79 @@ void send_remove_player(int c_id, int p_id)
 
 void do_move(int p_id, DIRECTION dir)
 {
-	auto &x = players[p_id].x;
-	auto &y = players[p_id].y;
-	
+	auto& x = players[p_id].x;
+	auto& y = players[p_id].y;
+
 	switch (dir) {
-	case D_N: if (y> 0) y--; break;
+	case D_N: if (y > 0) y--; break;
 	case D_S: if (y < (WORLD_Y_SIZE - 1)) y++; break;
 	case D_W: if (x > 0) x--; break;
 	case D_E: if (x < (WORLD_X_SIZE - 1)) x++; break;
 	}
-	for (auto& pl : players){
-		//lock_guard <mutex> lg (pl.m_slock);
-		if (PLST_INGAME == pl.m_state)
-			send_move_packet(pl.id, p_id);
+
+	unordered_set<int> old_vl;
+	players[p_id].m_vl.lock();
+	old_vl = players[p_id].m_view_list;
+	players[p_id].m_vl.unlock();
+	unordered_set<int> new_vl;
+	for (auto& pl : players) {
+		if (pl.id == p_id) continue;
+		if ((pl.m_state == PLST_INGAME) && can_see(p_id, pl.id)) {
+			new_vl.insert(pl.id);
+		}
+	}
+	send_move_packet(p_id, p_id);
+	for (auto pl : new_vl) {
+		if (0 == old_vl.count(pl)) {		//1. 새로 시야에 들어오는경우
+			players[p_id].m_vl.lock();
+			players[p_id].m_view_list.insert(pl);
+			players[p_id].m_vl.unlock();
+			send_add_player(p_id, pl);
+
+			players[pl].m_vl.lock();
+			if (0 == players[pl].m_view_list.count(p_id)) {
+				players[pl].m_view_list.insert(p_id);
+				players[pl].m_vl.unlock();
+				send_add_player(pl, p_id);
+			}
+			else {
+				players[pl].m_vl.unlock();
+				send_move_packet(pl, p_id);
+			}
+
+		}
+		else {
+			players[pl].m_vl.lock();
+			if (0 == players[pl].m_view_list.count(p_id)) {
+				players[pl].m_view_list.insert(p_id);
+				players[pl].m_vl.unlock();
+				send_add_player(pl, p_id);
+			}
+			else {
+				players[pl].m_vl.unlock();
+				send_move_packet(pl, p_id);
+			}
+		}
+	}
+
+	for (auto pl : old_vl) {
+		if (0 == new_vl.count(pl)) {
+			//3. 시야에서 사라진 경우
+			players[p_id].m_vl.lock();
+			players[p_id].m_view_list.erase(pl);
+			players[p_id].m_vl.unlock();
+			send_remove_player(p_id, pl);
+
+			players[pl].m_vl.lock();
+			if (0 != players[pl].m_view_list.count(p_id)) {
+				players[pl].m_view_list.erase(p_id);
+				players[pl].m_vl.unlock();
+				send_remove_player(pl,p_id);
+			}
+			else {
+				players[pl].m_vl.unlock();
+			}
+		}
 	}
 }
 
@@ -183,6 +254,8 @@ void process_packet(int p_id, unsigned char* p_buf)
 		c2s_login* packet = reinterpret_cast<c2s_login*>(p_buf);
 		lock_guard <mutex> gl2{ players[p_id].m_slock };
 		strcpy_s(players[p_id].m_name, packet->name);
+		players[p_id].x = rand() % WORLD_X_SIZE;
+		players[p_id].y = rand() % WORLD_Y_SIZE;
 		send_login_ok_packet(p_id);
 		players[p_id].m_state = PLST_INGAME;
 
@@ -190,8 +263,16 @@ void process_packet(int p_id, unsigned char* p_buf)
 			if (p_id != pl.id) {
 				lock_guard <mutex> gl{ pl.m_slock };
 				if (PLST_INGAME == pl.m_state) {
-					send_add_player(pl.id, p_id);
-					send_add_player(p_id, pl.id);
+					if (can_see(p_id, pl.id)){
+						players[p_id].m_vl.lock();
+						players[p_id].m_view_list.insert(pl.id);
+						players[p_id].m_vl.unlock();
+						send_add_player(pl.id, p_id);
+						players[pl.id].m_vl.lock();
+						players[pl.id].m_view_list.insert(p_id);
+						players[pl.id].m_vl.unlock();
+						send_add_player(p_id, pl.id);
+					}
 				}
 			}
 		}
