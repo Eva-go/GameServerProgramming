@@ -6,7 +6,6 @@ constexpr short SERVER_PORT = 3500;
 constexpr int WORLD_X_SIZE = 400;
 constexpr int WORLD_Y_SIZE = 400;
 constexpr int MAX_USER = 5000;
-constexpr int VIEW_RADIUS = 5;
 
 constexpr unsigned char C2S_LOGIN = 1;
 constexpr unsigned char C2S_MOVE = 2;
@@ -22,11 +21,11 @@ struct c2s_login {
 	char	name[MAX_NAME];
 };
 
-enum DIRECTION  { D_N, D_S, D_W, D_E, D_NO };
+enum DIRECTION { D_N, D_S, D_W, D_E, D_NO };
 struct c2s_move {
 	unsigned char size;
 	unsigned char type;
-	DIRECTION dr;		
+	DIRECTION dr;
 	int move_time;	//클라이언트 에서 패킷을 보낸 시간,밀리세컨드(ms)
 };
 

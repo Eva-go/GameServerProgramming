@@ -338,11 +338,11 @@ int main()
         display_error("AcceptEX Error", err_num);
     }
 
-    vector<thread> worker_threads;
+    /*vector<thread> worker_threads;
     for (int i = 0; i < CORE; ++i)
         worker_threads.emplace_back(worker,h_iocp,listenSocket);
     for (auto& th : worker_threads)
-        th.join();
+        th.join();*/
     closesocket(listenSocket);
     WSACleanup();
 }
