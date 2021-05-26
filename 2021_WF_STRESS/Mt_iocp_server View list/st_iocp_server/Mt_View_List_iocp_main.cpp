@@ -237,216 +237,6 @@ void do_move(int p_id, DIRECTION dir)
 	//	}
 	//}
 
-	//섹터1만 검사
-	if (players[p_id].x < 195 && players[p_id].y < 195)
-	{
-		for (int i = 0; i < sec1.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-			send_move_packet(p_id, p_id);
-		}
-	}
-	// 섹터2만 검사 (움직여야 보임
-	else if (players[p_id].x > 205 && players[p_id].y < 195)
-	{
-		for (int i = 0; i < sec2.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-	// 섹터3만 검사
-	else if (players[p_id].x > 205 && players[p_id].y > 205)
-	{
-		for (int i = 0; i < sec3.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-	// 섹터4만 검사
-	else if (players[p_id].x < 195 && players[p_id].y >205)
-	{
-		for (int i = 0; i < sec4.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-
-	// 섹터 1,2 검사
-	else if (players[p_id].x >= 195 && players[p_id].x <= 205 && players[p_id].y < 195)
-	{
-		for (int i = 0; i < sec1.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec2.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-	// 섹터 3,4 검사
-	else if (players[p_id].x >= 195 && players[p_id].x <= 205 && players[p_id].y > 205)
-	{
-		for (int i = 0; i < sec3.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec4.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-	// 섹터 1,4 검사
-	else if (players[p_id].x < 195 && players[p_id].y >= 195 && players[p_id].y <= 205)
-	{
-		for (int i = 0; i < sec1.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec4.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-	// 섹터 2,3 검사
-	else if (players[p_id].x > 205 && players[p_id].y >= 195 && players[p_id].y <= 205)
-	{
-		for (int i = 0; i < sec2.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec3.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-	// 섹터 1,2,3,4 검사
-
-	else if (players[p_id].x >= 195 && players[p_id].x <= 205 && players[p_id].y >= 205 && players[p_id].y <= 205)
-	{
-		for (int i = 0; i < sec1.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec2.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec3.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-
-		for (int i = 0; i < sec4.size(); ++i)
-		{
-			if (players[i].id == p_id) continue;
-			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
-				new_vl.insert(players[i].id);
-			}
-		}
-		send_move_packet(p_id, p_id);
-	}
-
-
-	// 시야에 들어온 객체 처리
-	for (auto pl : new_vl) {
-		if (0 == old_vl.count(pl)) {
-			players[pl].m_view_list.insert(pl);
-			send_add_player(p_id, pl);
-			if (0 == players[pl].m_view_list.count(p_id)) {
-				players[pl].m_view_list.insert(p_id);
-				send_add_player(pl, p_id);
-			}
-			else {
-				send_move_packet(pl, p_id);
-			}
-		}
-		else {  // 이전에도 시야에 있었고, 이동후에도 시야에 있는 객체
-
-			if (0 != players[pl].m_view_list.count(p_id)) {
-				send_move_packet(pl, p_id);
-			}
-			else
-			{
-				players[pl].m_view_list.insert(p_id);
-				send_add_player(pl, p_id);
-			}
-		}
-	}
-	for (auto pl : old_vl) {
-		if (0 == new_vl.count(pl)) {
-			new_vl.erase(pl);
-			send_remove_player(p_id, pl);
-			if (0 != players[pl].m_view_list.count(p_id)) {
-				players[pl].m_view_list.erase(p_id);
-				send_remove_player(pl, p_id);
-			}
-		}
-	}
 	//for (auto pl : old_vl) {
 	//	if (0 == new_vl.count(pl)) {
 	//		//3. 시야에서 사라진 경우
@@ -466,6 +256,218 @@ void do_move(int p_id, DIRECTION dir)
 	//		}
 	//	}
 	//}
+
+	 // 섹터1만 검사
+    if (players[p_id].x < 195 && players[p_id].y < 195)
+    {
+        for (int i = 0; i < sec1.size(); ++i) 
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, p_id);
+    }
+    
+    // 섹터2만 검사 (움직여야 보임
+    else if (players[p_id].x > 205 && players[p_id].y < 195)
+    {
+        for (int i = 0; i < sec2.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, p_id);
+    }
+
+    // 섹터3만 검사
+    else if (players[p_id].x > 205 && players[p_id].y > 205) 
+    {
+        for (int i = 0; i < sec3.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, p_id);
+    }
+
+    // 섹터4만 검사
+    else if (players[p_id].x < 195 && players[p_id].y >205)
+    {
+        for (int i = 0; i < sec4.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, p_id);
+    }
+
+    
+    // 섹터 1,2 검사
+    else if (players[p_id].x >= 195 && players[p_id].x <= 205 && players[p_id].y < 195)
+    {
+        for (int i = 0; i < sec1.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+
+        for (int i = 0; i < sec2.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, p_id);
+    }
+
+    // 섹터 3,4 검사
+    else if (players[p_id].x >= 195 && players[p_id].x <= 205 && players[p_id].y > 205)
+    {
+        for (int i = 0; i < sec3.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+
+        for (int i = 0; i < sec4.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, p_id);
+    }
+
+    // 섹터 1,4 검사
+    else if (players[p_id].x < 195 && players[p_id].y >= 195 && players[p_id].y <= 205)
+    {
+        for (int i = 0; i < sec1.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+
+        for (int i = 0; i < sec4.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(p_id, );
+    }
+
+    // 섹터 2,3 검사
+    else if (players[p_id].x > 205 && players[p_id].y >= 195 && players[p_id].y <= 205)
+    {
+        for (int i = 0; i < sec2.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+
+        for (int i = 0; i < sec3.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(id, id);
+    }
+
+    // 섹터 1,2,3,4 검사
+
+    else if (players[p_id].x >= 195 && players[p_id].x <= 205 && players[p_id].y >= 205 && players[p_id].y <= 205)
+    {
+        for (int i = 0; i < sec1.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+    
+        for (int i = 0; i < sec2.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+    
+        for (int i = 0; i < sec3.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+
+        for (int i = 0; i < sec4.size(); ++i)
+        {
+			if (players[i].id == p_id) continue;
+			if ((players[i].m_state == PLST_INGAME) && can_see(p_id, players[i].id)) {
+				new_vl.insert(players[i].id);
+			}
+        }
+        send_move_packet(id, id);
+    }
+
+
+    // 시야에 들어온 객체 처리
+    for (int ob : new_viewlist) {
+        if (0 == old_viewlist.count(ob)) {
+            players[p_id].view_list.insert(ob);
+            send_enter_packet(id, ob);
+            if (0 == g_clients[ob].view_list.count(id)) {
+                g_clients[ob].view_list.insert(id);
+                send_enter_packet(ob, id);
+            }
+            else {
+                send_move_packet(ob, id);
+            }
+        }
+        else {  // 이전에도 시야에 있었고, 이동후에도 시야에 있는 객체
+            
+            if (0 != g_clients[ob].view_list.count(id)) {
+                send_move_packet(ob, id);
+            }
+            else
+            {
+                g_clients[ob].view_list.insert(id);
+                send_enter_packet(ob, id);
+            }
+        }
+    }
+    for (int ob : old_viewlist) {
+        if (0 == new_viewlist.count(ob)) {
+            players[p_id].view_list.erase(ob);
+            send_leave_packet(id, ob);
+            if (0 != g_clients[ob].view_list.count(id)) {
+                g_clients[ob].view_list.erase(id);
+                send_leave_packet(ob, id);
+            }
+        }
+    }
 }
 
 void process_packet(int p_id, unsigned char* p_buf)
