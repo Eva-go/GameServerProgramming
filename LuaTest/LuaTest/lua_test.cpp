@@ -11,6 +11,16 @@ extern "C" {
 
 #pragma comment (lib,"lua54.lib")
 
+int add_in_c(lua_State* L)
+{
+	int a = lua_tonumber(L, -2);
+	int b = lua_tonumber(L, -1);
+	lua_pop(L,3);
+	int c = a + b;
+	lua_pushnumber(L, c);
+	return 1;
+}
+
 int main()
 {
 
@@ -40,6 +50,17 @@ int main()
 	lua_pop(L, 1);
 
 	cout << "Result is" << result << endl;
+
+	lua_register(L, "call_c_func_add", add_in_c);
+	lua_getglobal(L, "add_num");
+	lua_pushnumber(L, 100);
+	lua_pushnumber(L, 200);
+	lua_pcall(L, 2, 1, 0);
+	result = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+
+	cout << "Result is " << result << endl;
+
 
 	lua_close(L);
 }

@@ -7,7 +7,7 @@ end
 
 function add_num(a,b)
 	local c 
-c=a+b
+c=call_c_func_add(a,b)
 return c;
 end
 
