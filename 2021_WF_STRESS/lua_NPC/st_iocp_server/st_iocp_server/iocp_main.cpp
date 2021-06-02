@@ -13,7 +13,17 @@ using namespace std;
 
 #include "protocol.h"
 
-enum OP_TYPE  { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDO_MOVE, OP_ATTACK };
+extern "C" {
+
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+}
+
+
+#pragma comment (lib,"lua54.lib")
+
+enum OP_TYPE  { OP_RECV, OP_SEND, OP_ACCEPT, OP_RANDO_MOVE, OP_ATTACK , OP_PLAYER_APPROACH };
 struct EX_OVER
 {
 	WSAOVERLAPPED	m_over;
@@ -56,6 +66,9 @@ struct S_OBJECT
 	int		move_time;
 	unordered_set <int> m_view_list;
 	mutex   m_vl;
+
+	lua_State* L;
+	mutex m_sl;
 };
 
 constexpr int SERVER_ID = 0;
@@ -213,6 +226,16 @@ void send_remove_object(int c_id, int p_id)
 	send_packet(c_id, &p);
 }
 
+void send_chat(int c_id, int p_id, const char *mess)
+{
+	s2c_chat p;
+	p.id = p_id;
+	p.size = sizeof(p);
+	p.type = S2C_CHAT;
+	strcpy_s(p.mess,mess);
+	send_packet(c_id, &p);
+}
+
 void do_move(int p_id, DIRECTION dir)
 {
 	auto &x = objects[p_id].x;
@@ -230,9 +253,19 @@ void do_move(int p_id, DIRECTION dir)
 	unordered_set <int> new_vl;
 	for (auto& pl : objects) {
 		if (pl.id == p_id) continue;
-		if ((pl.m_state == PLST_INGAME) && can_see(p_id, pl.id))
+		if ((pl.m_state == PLST_INGAME) && can_see(p_id, pl.id)){
 			new_vl.insert(pl.id);
+			if (true == is_npc(pl.id)){
+				EX_OVER* ex_over = new EX_OVER;
+				ex_over->m_op = OP_PLAYER_APPROACH;
+				*reinterpret_cast<int *>(ex_over->m_packetbuf) = p_id;
+				PostQueuedCompletionStatus(h_iocp, 1, pl.id, &ex_over->m_over);
+			}
+		}
 	}
+
+	
+
 	send_move_packet(p_id, p_id);
 	for (auto pl : new_vl) {
 		if (0 == old_vl.count(pl)) {		// 1. 새로 시야에 들어오는 객체
@@ -497,6 +530,15 @@ void worker(HANDLE h_iocp, SOCKET l_socket)
 		case OP_ATTACK:
 			delete ex_over;
 			break;
+		case OP_PLAYER_APPROACH:
+			objects[key].m_sl.lock();
+			int move_player = *reinterpret_cast<int *>(ex_over->m_packetbuf);
+			lua_State* L = objects[key].L;
+			lua_getglobal(L, "players_is_near");
+			lua_pushnumber(L, move_player);
+			lua_pcall(L, 1, 0, 0);
+			objects[key].m_sl.unlock();
+			delete ex_over;
 		}
 	}
 }
@@ -544,6 +586,35 @@ void do_timer()
 	}
 }
 
+
+int API_get_x(lua_State* L)
+{
+	int obj_id = lua_tonumber(L, -1);
+	lua_pop(L, 2);
+	int x = objects[obj_id].x;
+	lua_pushnumber(L, x);
+	return 1;
+}
+
+int API_get_y(lua_State* L)
+{
+	int obj_id = lua_tonumber(L, -1);
+	lua_pop(L, 2);
+	int y = objects[obj_id].y;
+	lua_pushnumber(L, y);
+	return 1;
+}
+
+int API_send_mess(lua_State* L)
+{
+	int p_id = lua_tonumber(L, -3);
+	int o_id = lua_tonumber(L, -2);
+	const char* mess = lua_tostring(L, -1);
+	lua_pop(L, 4);
+	send_chat(p_id, o_id, mess);
+	return 0;
+}
+
 int main()
 {
 	for (int i = 0; i < MAX_USER + 1; ++i) {
@@ -556,6 +627,19 @@ int main()
 			pl.x = rand() % WORLD_X_SIZE;
 			pl.y = rand() % WORLD_Y_SIZE;
 			// add_event(i, OP_RANDO_MOVE, 1000);
+			lua_State *L = pl.L = lua_newstate();
+			luaL_openlibs(L);
+			luaL_loadfile(L, "npc.lua");
+			int res = lua_pcall(L, 0, 0, 0);
+
+			lua_getglobal(L, "set_object_id");
+			lua_pushnumber(L, i);
+			lua_pcall(L, 1, 0, 0);
+
+			lua_register(L, "API_get_x", API_get_x);
+			lua_register(L, "API_get_y", API_get_y);
+			lua_register(L, "API_send_mess", API_send_mess);
+			
 		}
 	}
 
