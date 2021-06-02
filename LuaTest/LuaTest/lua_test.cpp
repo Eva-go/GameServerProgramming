@@ -60,7 +60,7 @@ int main()
 	lua_pop(L, 1);
 
 	cout << "Result is " << result << endl;
-
+	
 
 	lua_close(L);
 }
