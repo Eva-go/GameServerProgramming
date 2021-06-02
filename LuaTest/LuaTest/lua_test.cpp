@@ -13,10 +13,33 @@ extern "C" {
 
 int main()
 {
-	const char* lua_pro = "print \"Hello World for LUA\"";
+
 	lua_State* L = luaL_newstate();
 	luaL_openlibs(L);
-	luaL_loadbuffer(L,lua_pro,strlen(lua_pro),"line");
-	lua_pcall(L, 0, 0, 0);
+	luaL_loadfile(L,"dragon.lua");
+	int res = lua_pcall(L, 0, 0, 0);
+	if (0 != res) {
+		cout << "LUA error in exec : " << lua_tostring(L, -1) << endl;
+		exit(-1);
+	}
+	lua_getglobal(L, "pos_x");
+	lua_getglobal(L, "pos_y");
+	
+
+	int dragon_x = lua_tonumber(L, -2);
+	int dragon_y = lua_tonumber(L, -1);
+
+	lua_pop(L, 2);
+
+	cout << "Position is [" << dragon_x << "," << dragon_y << "]" << endl;
+
+	lua_getglobal(L, "plustwo");
+	lua_pushnumber(L, 100);
+	lua_pcall(L, 1, 1, 0);
+	int result = lua_tonumber(L, -1);
+	lua_pop(L, 1);
+
+	cout << "Result is" << result << endl;
+
 	lua_close(L);
 }
