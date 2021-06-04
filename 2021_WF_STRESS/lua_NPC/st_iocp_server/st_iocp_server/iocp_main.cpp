@@ -627,7 +627,7 @@ int main()
 			pl.x = rand() % WORLD_X_SIZE;
 			pl.y = rand() % WORLD_Y_SIZE;
 			// add_event(i, OP_RANDO_MOVE, 1000);
-			lua_State *L = pl.L = lua_newstate();
+			lua_State *L = pl.L = luaL_newstate();
 			luaL_openlibs(L);
 			luaL_loadfile(L, "npc.lua");
 			int res = lua_pcall(L, 0, 0, 0);
