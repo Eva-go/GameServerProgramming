@@ -11,3 +11,5 @@ Task수정:도스에서 win32api로 수정
 
 오후 3:16 2021-06-04
 exe파일 삭제 후 푸쉬
+
+https://parsec.gg/g/1thTWPUTJvL1EtJA5KmvJmuVOYb/af94627e/
